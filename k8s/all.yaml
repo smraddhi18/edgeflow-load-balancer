@@ -1,0 +1,291 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edgeflow-config
+data:
+  upstreams.json: |
+    {
+      "listenPort": 8080,
+      "healthIntervalMs": 2000,
+      "healthTimeoutMs": 700,
+      "requestTimeoutMs": 3000,
+      "ejectAfterFailures": 3,
+      "ejectForMs": 5000,
+      "maxRetryAttempts": 2,
+      "rateLimit": { "requestsPerSecond": 20, "burst": 40, "maxClients": 10000 },
+      "routes": [
+        {
+          "id": "api",
+          "prefix": "/",
+          "upstreams": [
+            { "id": "backend-a", "url": "http://backend-a:9000", "weight": 1 },
+            { "id": "backend-b", "url": "http://backend-b:9000", "weight": 1 },
+            { "id": "backend-c", "url": "http://backend-c:9000", "weight": 1 }
+          ]
+        }
+      ]
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edgeflow-gateway
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: edgeflow-gateway
+  template:
+    metadata:
+      labels:
+        app: edgeflow-gateway
+    spec:
+      terminationGracePeriodSeconds: 15
+      containers:
+        - name: gateway
+          image: edgeflow-load-balancer:local
+          imagePullPolicy: IfNotPresent
+          command: ["node", "src/gateway.js"]
+          env:
+            - name: CONFIG_PATH
+              value: /app/config/active/upstreams.json
+          ports:
+            - containerPort: 8080
+              name: http
+          volumeMounts:
+            - name: config
+              mountPath: /app/config/active
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 3
+            timeoutSeconds: 1
+          livenessProbe:
+            httpGet:
+              path: /livez
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: config
+          configMap:
+            name: edgeflow-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edgeflow-gateway
+spec:
+  selector:
+    app: edgeflow-gateway
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-a
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-a
+  template:
+    metadata:
+      labels:
+        app: backend-a
+    spec:
+      containers:
+        - name: backend
+          image: edgeflow-load-balancer:local
+          imagePullPolicy: IfNotPresent
+          command: ["node", "src/backend.js"]
+          env:
+            - name: INSTANCE_ID
+              value: backend-a
+            - name: PORT
+              value: "9000"
+          ports:
+            - containerPort: 9000
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-a
+spec:
+  selector:
+    app: backend-a
+  ports:
+    - name: http
+      port: 9000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-b
+  template:
+    metadata:
+      labels:
+        app: backend-b
+    spec:
+      containers:
+        - name: backend
+          image: edgeflow-load-balancer:local
+          imagePullPolicy: IfNotPresent
+          command: ["node", "src/backend.js"]
+          env:
+            - name: INSTANCE_ID
+              value: backend-b
+            - name: PORT
+              value: "9000"
+          ports:
+            - containerPort: 9000
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-b
+spec:
+  selector:
+    app: backend-b
+  ports:
+    - name: http
+      port: 9000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-c
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend-c
+  template:
+    metadata:
+      labels:
+        app: backend-c
+    spec:
+      containers:
+        - name: backend
+          image: edgeflow-load-balancer:local
+          imagePullPolicy: IfNotPresent
+          command: ["node", "src/backend.js"]
+          env:
+            - name: INSTANCE_ID
+              value: backend-c
+            - name: PORT
+              value: "9000"
+          ports:
+            - containerPort: 9000
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop: ["ALL"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-c
+spec:
+  selector:
+    app: backend-c
+  ports:
+    - name: http
+      port: 9000
+      targetPort: http

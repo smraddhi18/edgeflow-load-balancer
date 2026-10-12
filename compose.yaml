@@ -1,0 +1,42 @@
+services:
+  gateway:
+    build: .
+    command: ["node", "src/gateway.js"]
+    environment:
+      CONFIG_PATH: /app/config/compose.json
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend-a
+      - backend-b
+      - backend-c
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/readyz"]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+    restart: unless-stopped
+
+  backend-a:
+    build: .
+    command: ["node", "src/backend.js"]
+    environment:
+      INSTANCE_ID: backend-a
+      PORT: 9000
+    restart: unless-stopped
+
+  backend-b:
+    build: .
+    command: ["node", "src/backend.js"]
+    environment:
+      INSTANCE_ID: backend-b
+      PORT: 9000
+    restart: unless-stopped
+
+  backend-c:
+    build: .
+    command: ["node", "src/backend.js"]
+    environment:
+      INSTANCE_ID: backend-c
+      PORT: 9000
+    restart: unless-stopped

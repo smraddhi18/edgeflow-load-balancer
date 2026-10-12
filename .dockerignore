@@ -1,0 +1,6 @@
+.git
+node_modules
+*.log
+*.zip
+README.md
+k8s

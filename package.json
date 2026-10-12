@@ -1,0 +1,11 @@
+{
+  "name": "edgeflow-load-balancer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node src/gateway.js",
+    "backend": "node src/backend.js"
+  }
+}

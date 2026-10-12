@@ -1,0 +1,21 @@
+{
+  "listenPort": 8080,
+  "healthIntervalMs": 2000,
+  "healthTimeoutMs": 700,
+  "requestTimeoutMs": 3000,
+  "ejectAfterFailures": 3,
+  "ejectForMs": 5000,
+  "maxRetryAttempts": 2,
+  "rateLimit": { "requestsPerSecond": 20, "burst": 40, "maxClients": 10000 },
+  "routes": [
+    {
+      "id": "api",
+      "prefix": "/",
+      "upstreams": [
+        { "id": "backend-a", "url": "http://127.0.0.1:9001", "weight": 1 },
+        { "id": "backend-b", "url": "http://127.0.0.1:9002", "weight": 1 },
+        { "id": "backend-c", "url": "http://127.0.0.1:9003", "weight": 1 }
+      ]
+    }
+  ]
+}
