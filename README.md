@@ -10,8 +10,8 @@ flowchart LR
   Gateway --> A[backend-a]
   Gateway --> B[backend-b]
   Gateway --> C[backend-c]
-  Gateway --> Metrics[/metrics]
-  Gateway --> Health[/readyz and /livez]
+  Gateway --> Metrics["/metrics"]
+  Gateway --> Health["/readyz and /livez"]
 ```
 
 ## Backend engineering features
